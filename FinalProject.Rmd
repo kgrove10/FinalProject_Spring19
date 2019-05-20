@@ -8,32 +8,23 @@ output: html_document
 ```{r cleanup, include = FALSE}
 library(rio)
 library(tidyverse)
-library(dplyr)
 library(janitor)
-library(ggplot2)
-theme_set(theme_minimal())
-library(knitr)
-library(kableExtra)
-library(ggthemes)
-library(colorblindr)
 
-d <- import("./MasterKickstarter.csv", setclass = "tibble") %>% 
+d <- import("./MasterKickstarter.csv", setclass = "tbl_df") %>% 
   clean_names()
 
-continental_us <- d %>% 
+lower48 <- d %>% 
   select(-1:-3) %>% 
-  filter(country == "USA" & county != "Non-USA")     # We looked at inverse of filter to see which cases were in USA == country but were also labeled as county != Non-USA. Those cases were those that were not part of the continental US
+  filter(country == "USA" & county != "Non-USA" & state != "Non-USA")     # We looked at inverse of filter to see which cases were in USA == country but were also labeled as county != Non-USA. Those cases were those that were not part of the continental US
 ```
 
 ```{r split}
-cumulative_data <- clean_data %>%
-  group_by(academic_year, school, student_group, grade_level) %>%
-  mutate(cn = cumsum(n))
+lower48_split <- lower48 %>% 
+  split(paste(lower48$state))
 
-continental_us_split <- continental_us %>% 
-  group_by(state, county) %>% 
+lower48_test <- lower48 %>%
+  group_by(state) %>%
   nest()
 
-str(continental_us_split)
 ```
 
