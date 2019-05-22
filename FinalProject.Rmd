@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "Andrew Edelblum"
+author: "Andrew Edelblum, Kivalina Grove, and Ouafaa Hmaddi"
 date: "5/20/2019"
 output: html_document
 ---
@@ -82,5 +82,41 @@ summarize_oh(iris, Species, Sepal.Width)
   
 
 lower48_nest$state
+```
+
+```{r functionadd}
+check_args <- function(data, 
+              group_var, 
+              sum_var
+              ) {
+	if(!is.data.frame(data)) {
+		stop("Data supplied must be of type data frame.  Data supplied is not a data frame.")
+	}
+	if(!is.numeric(pull(data, !!enquo(sum_var)))) {
+		stop("The variable to summarize must be numeric. The variable supplied is not numeric.")
+	}
+	if(is.numeric(pull(data, !!enquo(group_var)))) {
+		warning("Warning: the grouping variable supplied is numeric, not categorical.")
+	}
+}
+
+stat_calc <- function(data, 
+                      group_var, 
+                      outcome_var, 
+                      .funs = list(n = ~length(.),
+                           n_valid = ~sum(!is.na(.)),
+                           n_miss = ~sum(is.na(.)),
+                           mean = ~mean(., na.rm = TRUE),
+                           sd = ~sd(., na.rm = TRUE),
+                           min = ~min(., na.rm = TRUE),
+                           max = ~max(., na.rm = TRUE))){
+  
+  check_args(data, !!enquo(group_var), !!enquo(outcome_var))
+  
+  data %>%
+		group_by(!!enquo(group_var)) %>%
+		summarize_at(vars(!!enquo(outcome_var)),
+		             .funs)
+}
 ```
 
