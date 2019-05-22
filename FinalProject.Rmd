@@ -22,9 +22,16 @@ lower48 <- d %>%
 lower48_split <- lower48 %>% 
   split(paste(lower48$state))
 
-lower48_test <- lower48 %>%
+lower48_nest <- lower48 %>%
+  slice(1:100) %>%
   group_by(state) %>%
   nest()
+```
 
+```{r cumsum}
+map(lower48_nest, ~print(.x))
+    mutate(total_backers = cumsum(.x[backers_count])))
+
+lower48_nest$state
 ```
 
