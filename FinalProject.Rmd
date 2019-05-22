@@ -9,14 +9,29 @@ output: html_document
 library(rio)
 library(tidyverse)
 library(janitor)
+library(colorblindr)
+library(stringr)
 
 d <- import("./MasterKickstarter.csv", setclass = "tbl_df") %>% 
   clean_names()
 
 lower48 <- d %>% 
   select(-1:-3) %>% 
-  filter(launched_at_y == 13) %>%
-  filter(country == "USA" & county != "Non-USA" & state != "Non-USA")     # We looked at inverse of filter to see which cases were in USA == country but were also labeled as county != Non-USA. Those cases were those that were not part of the continental US. We are only looking at Kickstarter campaigns on 2013.
+  filter(launched_at_y == 13 & 
+           country == "USA" & 
+           county != "Non-USA" & 
+           state != "Non-USA" &
+           status != "canceled") %>% 
+  mutate(categories = as.factor(categories))
+
+levels(lower48$categories) <- sub("film%20&%20video", "film", levels(lower48$categories))
+
+lower48 <- data.frame(lapply(lower48, function(lower48) {
+  if (is.character(lower48)) return(tolower(lower48))
+  else return(lower48)
+}))
+
+# We looked at inverse of filter to see which cases were in USA == country but were also labeled as county != Non-USA. Those cases were those that were not part of the continental US. We are only looking at Kickstarter campaigns on 2013.
 ```
 
 ```{r split}
@@ -24,15 +39,26 @@ lower48_split <- lower48 %>%
   split(paste(lower48$state))
 
 lower48_nest <- lower48 %>%
-  slice(1:100) %>%
   group_by(state) %>%
   nest() %>%
-  mutate(plot = map(data, ~ggplot(.x, aes(pledged, backers_count)) +
-        geom_point(aes(color = staff_pick))))
-        
-
-lower48_nest[[3]]
-
+  mutate(plot = map2(data, state, ~ggplot(.x, aes(backers_count, log(pledged))) +
+                      geom_point(aes(color = categories)) +
+                      geom_smooth(se = FALSE) +
+                      facet_wrap(~status) +
+                      labs(x = "Number of Backers", y = "Amount Pledged ($)", 
+                           color = "Categories", 
+                           title = "Number of campaign backers and money pledged", 
+                           subtitle = glue::glue("Kickstarter data for the state of {.y}")) +
+                      scale_color_OkabeIto() +
+                      theme_minimal() +
+                      theme(plot.title = element_text(face = "bold", hjust = 0.5), 
+                      plot.subtitle = element_text(hjust = 0.5),
+                      legend.position = "bottom",
+                      legend.title = element_text(face = "bold"),
+                      axis.title = element_text(face = "bold"))))
+          
+          
+lower48_nest[[3]][4]
 ```
 
 
