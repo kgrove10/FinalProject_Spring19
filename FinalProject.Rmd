@@ -29,8 +29,57 @@ lower48_nest <- lower48 %>%
 ```
 
 ```{r cumsum}
-map(lower48_nest, ~print(.x))
-    mutate(total_backers = cumsum(.x[backers_count])))
+map(lower48_nest$data, ~.x %>%
+      mutate(pct_backers = .x$backers_count / sum(.x$backers_count),
+    pct_pledged = .x$pledged / sum(.x$pledged))) 
+  
+check_args <- function(data, var, val) {
+  
+  if(!is.data.frame(data)) {
+       stop("This is a not a dataframe")
+      }
+    else{
+      if(is.numeric(data$val) == FALSE)  {
+      stop("The outcome variable is not numeric")
+      }
+        else {
+          if(is.numeric(data$var)) {
+            warning("The grouping variable is numeric")
+          }
+        }
+    }
+}
+
+
+
+check_args(iris, Species, Sepal.Width)
+
+summarize_oh <- function(data, var, val) {
+   
+      var <- enquo(var)
+    val <- enquo(val)
+    
+  check_args(data, var, val)
+  
+ 
+    
+
+            data %>%
+        group_by(!!var) %>%
+        summarize(n = length(!!val),
+                  n_valid = sum(!is.na(!!val)),
+                  n_miss = sum(is.na(!!val)),
+                  mean = mean(!!val, na.rm = TRUE),
+                  sd = sd(!!val, na.rm = TRUE),
+                  min = min(!!val, na.rm = TRUE),
+                  max = max(!!val, na.rm = TRUE))
+          
+}
+
+summarize_oh(airquality, Month, Ozone)
+
+summarize_oh(iris, Species, Sepal.Width)
+  
 
 lower48_nest$state
 ```
