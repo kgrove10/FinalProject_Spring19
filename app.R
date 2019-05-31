@@ -8,6 +8,7 @@ library(stringr)
 library(DT)
 
 # Custom functions
+# Summary function
 stat_calc <- function(data, group_var, outcome_var, .funs = list( n = ~ length(.),
                                                                   n_valid = ~ sum(!is.na(.)),
                                                                   n_miss = ~ sum(is.na(.)),
@@ -35,6 +36,13 @@ stat_calc <- function(data, group_var, outcome_var, .funs = list( n = ~ length(.
                    .funs)
   }
 }
+
+
+# Function for list extraction
+extract_col <- function(l, col) {
+  l$data[[col]]
+}
+
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme = shinytheme("lumen"),
@@ -109,7 +117,7 @@ ui <- fluidPage(theme = shinytheme("lumen"),
         # Show a plot of the generated distribution
         mainPanel(
            plotOutput("ggdistPlot"),
-           tableOutput("table")
+           DTOutput("table")
         )
     )
 )
@@ -141,7 +149,7 @@ server <- function(input, output) {
             group_by(state) %>%
             nest() %>%
             mutate(plot = map2(data, state, ~ggplot(.x, aes(backers_count, log(pledged))) +
-                                   geom_point(aes(color = categories)) +
+                                   geom_point(aes(color = categories), na.rm = TRUE) +  # Remove missing values
                                    geom_smooth(se = FALSE) +
                                    facet_wrap(input$facet) +
                                    labs(x = "Number of Backers", y = "Amount Pledged ($)", 
@@ -158,13 +166,16 @@ server <- function(input, output) {
         lower48_nest[[3]][as.numeric(input$state)]
         })
     
-    output$table <- renderDataTable({
-
-        
-        # as.data.frame(lower48_nest[[2]][as.numeric(input$state)])%>%
-        #     stat_calc(., input$facet, backers_count) %>%
-        #     datatable()
-    })  #so we are really confused at this point: we want to put in a table at the bottom of the page
+    output$table <- renderDT({
+      
+      lower48 %>%
+        group_by(state) %>%
+        nest() %>% 
+        extract_col(., as.numeric(input$state)) %>% 
+        stat_calc(., !!sym(input$facet), backers_count) %>%
+        datatable()
+    })
+    # })  #so we are really confused at this point: we want to put in a table at the bottom of the page
     # that will give summary statistics for the state the user selects, but we are getting tons of
     # errors that it is unable to find the object "backers_count", even when using the !!sym(), etc.
     # notations... help, please!! 
