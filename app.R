@@ -239,11 +239,6 @@ server <- function(input, output) {
         formatRound(columns = c("mean", "sd") , digits = 2)
         
     })
-    # })  #so we are really confused at this point: we want to put in a table at the bottom of the page
-    # that will give summary statistics for the state the user selects, but we are getting tons of
-    # errors that it is unable to find the object "backers_count", even when using the !!sym(), etc.
-    # notations... help, please!! 
-
 }
 
 # Run the application 
