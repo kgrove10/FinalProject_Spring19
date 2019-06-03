@@ -7,6 +7,43 @@ library(colorblindr)
 library(stringr)
 library(DT)
 
+# Custom functions
+# Summary function
+stat_calc <- function(data, group_var, outcome_var, .funs = list( n = ~ length(.),
+                                                                  n_valid = ~ sum(!is.na(.)),
+                                                                  n_miss = ~ sum(is.na(.)),
+                                                                  mean = ~ mean(., na.rm = TRUE),
+                                                                  sd = ~ sd(., na.rm = TRUE),
+                                                                  min = ~ min(., na.rm = TRUE),
+                                                                  max = ~ max(., na.rm = TRUE))) {
+  group <- enquo(group_var)
+  outcome <- enquo(outcome_var)
+  
+  if (!is.data.frame(data)) {
+    stop("Data supplied must be of type data frame.  Data supplied is not a data frame.")
+  }
+  if (is.numeric(pull(data, !!group))) {
+    warning("Warning: the grouping variable supplied is numeric, not categorical.")
+  }
+  if (!is.numeric(pull(data, !!outcome))) {
+    stop("The variable to summarize must be numeric. The variable supplied is not numeric.")
+  }
+  else{
+    
+    data %>%
+      group_by(!!group) %>%
+      summarize_at(vars(!!outcome),
+                   .funs)
+  }
+}
+
+
+# Function for list extraction
+extract_col <- function(l, col) {
+  l$data[[col]]
+}
+
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme = shinytheme("lumen"),
 
@@ -80,15 +117,15 @@ ui <- fluidPage(theme = shinytheme("lumen"),
         # Show a plot of the generated distribution
         mainPanel(
            plotOutput("ggdistPlot"),
-           tableOutput("table")
+           DTOutput("table")
         )
     )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-    d <- import("./MasterKickstarter.csv", setclass = "tbl_df") %>% 
-        clean_names()
+    d <- import(here::here("/MasterKickstarter.csv"), setclass = "tbl_df") %>%  #changed path to use here() so this will work on other computers
+        clean_names() 
     
     lower48 <- d %>% 
         select(-1:-3) %>% 
@@ -112,7 +149,7 @@ server <- function(input, output) {
             group_by(state) %>%
             nest() %>%
             mutate(plot = map2(data, state, ~ggplot(.x, aes(backers_count, log(pledged))) +
-                                   geom_point(aes(color = categories)) +
+                                   geom_point(aes(color = categories), na.rm = TRUE) +  # Remove missing values
                                    geom_smooth(se = FALSE) +
                                    facet_wrap(input$facet) +
                                    labs(x = "Number of Backers", y = "Amount Pledged ($)", 
@@ -129,45 +166,16 @@ server <- function(input, output) {
         lower48_nest[[3]][as.numeric(input$state)]
         })
     
-    output$table <- renderDataTable({
-        check_args <- function(data, 
-                               group_var, 
-                               sum_var
-        ) {
-            if(!is.data.frame(data)) {
-                stop("Data supplied must be of type data frame.  Data supplied is not a data frame.")
-            }
-            if(!is.numeric(pull(data, !!enquo(sum_var)))) {
-                stop("The variable to summarize must be numeric. The variable supplied is not numeric.")
-            }
-            if(is.numeric(pull(data, !!enquo(group_var)))) {
-                warning("Warning: the grouping variable supplied is numeric, not categorical.")
-            }
-        }
-        
-        stat_calc <- function(data, 
-                              group_var, 
-                              outcome_var, 
-                              .funs = list(n = ~length(.),
-                                           n_valid = ~sum(!is.na(.)),
-                                           n_miss = ~sum(is.na(.)),
-                                           mean = ~mean(., na.rm = TRUE),
-                                           sd = ~sd(., na.rm = TRUE),
-                                           min = ~min(., na.rm = TRUE),
-                                           max = ~max(., na.rm = TRUE))){
-            
-            check_args(data, !!enquo(group_var), !!enquo(outcome_var))
-            
-            data %>%
-                group_by(!!enquo(group_var)) %>%
-                summarize_at(vars(!!enquo(outcome_var)),
-                             .funs)
-        }
-        
-        as.data.frame(lower48_nest[[2]][as.numeric(input$state)])%>%
-            stat_calc(., input$facet, backers_count) %>%
-            datatable()
-    })  #so we are really confused at this point: we want to put in a table at the bottom of the page
+    output$table <- renderDT({
+      
+      lower48 %>%
+        group_by(state) %>%
+        nest() %>% 
+        extract_col(., as.numeric(input$state)) %>% 
+        stat_calc(., !!sym(input$facet), backers_count) %>%
+        datatable()
+    })
+    # })  #so we are really confused at this point: we want to put in a table at the bottom of the page
     # that will give summary statistics for the state the user selects, but we are getting tons of
     # errors that it is unable to find the object "backers_count", even when using the !!sym(), etc.
     # notations... help, please!! 
