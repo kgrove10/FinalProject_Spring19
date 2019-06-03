@@ -1,4 +1,5 @@
 library(shiny)
+#install.packages("shinythemes")
 library(shinythemes)
 library(rio)
 library(tidyverse)
@@ -23,7 +24,7 @@ stat_calc <- function(data, group_var, outcome_var, .funs = list( n = ~ length(.
     stop("Data supplied must be of type data frame.  Data supplied is not a data frame.")
   }
   if (is.numeric(pull(data, !!group))) {
-    warning("Warning: the grouping variable supplied is numeric, not categorical.")
+    warning("The grouping variable supplied is numeric, not categorical.")
   }
   if (!is.numeric(pull(data, !!outcome))) {
     stop("The variable to summarize must be numeric. The variable supplied is not numeric.")
@@ -44,6 +45,7 @@ extract_col <- function(l, col) {
 }
 
 
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme = shinytheme("lumen"),
 
@@ -56,55 +58,104 @@ ui <- fluidPage(theme = shinytheme("lumen"),
             selectInput("state", 
                         label = "Please select a state:",
                         choices = c("Alabama" = "9",
-                                    "Texas" = "1",
-                                    "California" = "2", 
-                                    "Michigan" = "3",
-                                    "South Carolina" = "4",
-                                    "Ohio" = "5",
-                                    "New Mexico" = "6",
-                                    "Colorado" = "7",
-                                    "New York" = "8",
-                                    "Illinois" = "10",
-                                    "Pennsylvania" = "11",
-                                    "Georgia" = "12",
-                                    "Florida" = "13",
-                                    "Utah" = "14",
-                                    "Iowa" = "15",
-                                    "Indiana" = "16",
-                                    "Virginia" = "17",
-                                    "Connecticut" = "18",
-                                    "North Carolina" = "19",
-                                    "Wisconsin" = "20",
-                                    "Oklahoma" = "21",
-                                    "New Jersey" = "22",
-                                    "Massachusetts" = "23",
+                                    
                                     "Arizona" = "24",
-                                    "Missouri" = "25",
-                                    "Maryland" = "26",
-                                    "New Hampshire" = "27",
-                                    "Vermont" = "28",
-                                    "Rhode Island" = "29",
-                                    "Louisiana" = "30",
-                                    "Oregon" = "31",
-                                    "West Virginia" = "32",
-                                    "Washington" = "33",
-                                    "Minnesota" = "34",
+                                    
                                     "Arkansas" = "35",
-                                    "Maine" = "36",
-                                    "Montana" = "37",
-                                    "North Dakota" = "38",
-                                    "Kentucky" = "39",
-                                    "Mississippi" = "40",
-                                    "South Dakota" = "41",
-                                    "Idaho" = "42",
-                                    "Nevada" = "43",
-                                    "Wyoming" = "44",
-                                    "Tennessee" = "45",
-                                    "Kansas" = "46",
+                                    
+                                    "California" = "2",
+                                    
+                                    "Colorado" = "7",
+                                    
+                                    "Connecticut" = "18",
+                                    
                                     "Delaware" = "47",
+                                    
+                                    "District of Columbia" = "49",
+                                    
+                                    "Florida" = "13",
+                                    
+                                    "Georgia" = "12",
+                                    
+                                    "Idaho" = "42",
+                                    
+                                    "Illinois" = "10",
+                                    
+                                    "Indiana" = "16",
+                                    
+                                    "Iowa" = "15",
+                                    
+                                    "Kansas" = "46",
+                                    
+                                    "Kentucky" = "39",
+                                    
+                                    "Louisiana" = "30",
+                                    
+                                    "Maine" = "36",
+                                    
+                                    "Maryland" = "26",
+                                    
+                                    "Massachusetts" = "23",
+                                    
+                                    "Michigan" = "3",
+                                    
+                                    "Minnesota" = "34",
+                                    
+                                    "Mississippi" = "40",
+                                    
+                                    "Missouri" = "25",
+                                    
+                                    "Montana" = "37",
+                                    
                                     "Nebraska" = "48",
-                                    "District of Columbia" = "49"), 
-                        selected = "31"),
+                                    
+                                    "Nevada" = "43",
+                                    
+                                    "New Hampshire" = "27",
+                                    
+                                    "New Jersey" = "22",
+                                    
+                                    "New Mexico" = "6",
+                                    
+                                    "New York" = "8",
+                                    
+                                    "North Carolina" = "19",
+                                    
+                                    "North Dakota" = "38",
+                                    
+                                    "Ohio" = "5",
+                                    
+                                    "Oklahoma" = "21",
+                                    
+                                    "Oregon" = "31",
+                                    
+                                    "Pennsylvania" = "11",
+                                    
+                                    "Rhode Island" = "29",
+                                    
+                                    "South Carolina" = "4",
+                                    
+                                    "South Dakota" = "41",
+                                    
+                                    "Tennessee" = "45",
+                                    
+                                    "Texas" = "1",
+                                    
+                                    "Utah" = "14",
+                                    
+                                    "Vermont" = "28",
+                                    
+                                    "Virginia" = "17",
+                                    
+                                    "Washington" = "33",
+                                    
+                                    "West Virginia" = "32",
+                                    
+                                    "Wisconsin" = "20",
+                                    
+                                    "Wyoming" = "44"),
+                    
+                         selected = "22"),
             radioButtons("facet",
                         label = "Group to facet by:",
                         choices = c("Status" = "status",
@@ -133,30 +184,40 @@ server <- function(input, output) {
                    country == "USA" & 
                    county != "Non-USA" & 
                    state != "Non-USA" &
-                   status != "canceled") %>% 
-        mutate(categories = as.factor(categories))
+                   status != "canceled" & 
+                   status != "suspended") %>% 
+        mutate(categories = as.factor(categories)) 
+        
     
     levels(lower48$categories) <- sub("film%20&%20video", "film", levels(lower48$categories))
     
-    lower48 <- data.frame(lapply(lower48, function(lower48) {
+    lower48 <- data.frame(map(lower48, function(lower48) {
         if (is.character(lower48)) return(tolower(lower48))
         else return(lower48)
     }))
 
+    lower48$status <- map_chr(lower48$status, stringr::str_to_title )
+    
+    lower48$categories <- map_chr(lower48$categories, stringr::str_to_title )
+    
+    lower48$spot_light <- map_chr(lower48$spot_light, stringr::str_to_title )
+    
+    lower48$staff_pick <- map_chr(lower48$staff_pick, stringr::str_to_title )
+    
     output$ggdistPlot <- renderPlot({
         
         lower48_nest <- lower48 %>%
             group_by(state) %>%
             nest() %>%
-            mutate(plot = map2(data, state, ~ggplot(.x, aes(backers_count, log(pledged))) +
-                                   geom_point(aes(color = categories), na.rm = TRUE) +  # Remove missing values
-                                   geom_smooth(se = FALSE) +
+            mutate(plot = map2(data, stringr::str_to_title(state), ~ggplot(.x, aes(log(backers_count), log(pledged))) +
+                                   geom_smooth(se = FALSE, color = "grey70", size = .5) +
+                                   geom_point(aes(color = categories), na.rm = TRUE, alpha = .6) +  # Remove missing values
                                    facet_wrap(input$facet) +
-                                   labs(x = "Number of Backers", y = "Amount Pledged ($)", 
+                                   labs(x = "Logged Number of Backers", y = "Logged Amount Pledged ($)", 
                                         color = "Categories", 
                                         title = "Number of campaign backers and money pledged", 
                                         subtitle = glue::glue("Kickstarter data for the state of {.y}")) +
-                                   scale_color_OkabeIto() +
+                                   scale_color_viridis_d() +
                                    theme_minimal() +
                                    theme(plot.title = element_text(face = "bold", hjust = 0.5), 
                                          plot.subtitle = element_text(hjust = 0.5),
@@ -173,7 +234,10 @@ server <- function(input, output) {
         nest() %>% 
         extract_col(., as.numeric(input$state)) %>% 
         stat_calc(., !!sym(input$facet), backers_count) %>%
-        datatable()
+        datatable(colnames = c("Status", "N", "Valid cases", "Missing cases", 
+                               "Mean", "SD", "Minimum", "Maximum")) %>%
+        formatRound(columns = c("mean", "sd") , digits = 2)
+        
     })
     # })  #so we are really confused at this point: we want to put in a table at the bottom of the page
     # that will give summary statistics for the state the user selects, but we are getting tons of

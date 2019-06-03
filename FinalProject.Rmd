@@ -21,10 +21,13 @@ lower48 <- d %>%
            country == "USA" & 
            county != "Non-USA" & 
            state != "Non-USA" &
-           status != "canceled") %>% 
+           status != "canceled" &
+           status != "suspended" ) %>% 
   mutate(categories = as.factor(categories))
 
 levels(lower48$categories) <- sub("film%20&%20video", "film", levels(lower48$categories))
+
+lower48$status <- map(lower48$status, stringr::str_to_title )
 
 lower48 <- data.frame(lapply(lower48, function(lower48) {
   if (is.character(lower48)) return(tolower(lower48))
